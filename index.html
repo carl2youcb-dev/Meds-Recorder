@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#2f855a" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+    <meta charset="UTF-8">
+    <title>Medication Tracker</title>
+    <!-- Font Awesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- Include Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+    <!-- Include Chart.js Annotation Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0"></script>
+    <style>
+        /* CSS Styles */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            font-size: 16px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 5px;
+            font-size: 1.8em;
+        }
+
+        .current-day {
+            text-align: center;
+            font-size: 1.5em;
+            color: green;
+            margin-bottom: 5px;
+        }
+
+        .current-time {
+            text-align: center;
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .med-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            font-size: 1em;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin-right: 10px;
+            margin-top: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            color: white;
+        }
+
+        .take-button { background-color: #27ae60; }
+        .delete-button { background-color: #e74c3c; }
+        .remove-med-button { background-color: #f39c12; }
+        .tablet-count-button { background-color: #f1c40f; display: inline-flex; align-items: center; justify-content: center; }
+        .tablet-count-button i { margin-right: 5px; }
+        .note-button { background-color: #3498db; }
+        .history-button { background-color: #008080; } /* Teal color */
+        .sugar-button { background-color: #555; } /* Dark grey color */
+        .manual-entry-button { background-color: #9b59b6; }
+
+        button:hover { opacity: 0.9; }
+
+        .add-med-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 70%;
+            margin-left: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="number"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 100px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .archive-list { display: none; }
+
+        /* Custom input for tablet count */
+        #tablet-count-input {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        #tablet-count-input button {
+            margin-top: 10px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        /* Styles for History Modal */
+        #history-modal {
+            display: none;
+            position: fixed;
+            top: 10%;
+            left: 50%;
+            transform: translate(-50%, 0);
+            width: 90%;
+            max-width: 600px;
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            font-size: 18px;
+        }
+
+        #history-content {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        #history-modal button {
+            margin-top: 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        /* Overlay for modals */
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 900;
+        }
+
+        .med-notes {
+            width: 100%;
+            margin-top: 10px;
+            font-size: 16px;
+            padding: 10px;
+            border-radius: 5px;
+            resize: vertical;
+        }
+
+        /* Style for bold dates */
+        .history-date {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* Styles for Sugar Modal */
+        #sugar-modal {
+            display: none;
+            position: fixed;
+            top: 5%;
+            left: 50%;
+            transform: translate(-50%, 0);
+            width: 95%;
+            max-width: 700px;
+            max-height: 90%;
+            overflow-y: auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        #sugar-modal button {
+            margin-top: 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        /* Styles for Blood Sugar Input Modal */
+        #blood-sugar-input {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        #blood-sugar-input button {
+            margin-top: 10px;
+            margin-right: 10px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #blood-sugar-input button.cancel {
+            background-color: #e74c3c;
+        }
+
+        #blood-sugar-input input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* Styles for Manual Entry Modal */
+        #manual-entry-input {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        #manual-entry-input button {
+            margin-top: 10px;
+            margin-right: 10px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #manual-entry-input button.cancel {
+            background-color: #e74c3c;
+        }
+
+        #manual-entry-input input[type="datetime-local"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* Styles for the chart container */
+        #sugar-chart-container {
+            width: 100%;
+            max-width: 650px;
+            margin: 20px auto;
+        }
+
+        /* Alert message */
+        #alert-message {
+            display: none;
+            position: fixed;
+            top: 10%;
+            left: 50%;
+            transform: translate(-50%, 0);
+            background-color: #ffdddd;
+            color: #d8000c;
+            border: 1px solid #d8000c;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 1100;
+            max-width: 80%;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+    <h1><i class="fas fa-pills"></i> Medication Tracker</h1>
+    <div class="current-day" id="current-day"></div>
+    <div class="current-time" id="current-date-time"></div>
+    <div id="med-list"></div>
+
+    <!-- Sugar Button (conditionally displayed) -->
+    <div id="sugar-button-container" style="text-align: center; margin-bottom: 20px; display: none;">
+        <button class="sugar-button" id="sugar-btn" aria-label="View blood sugar graph">
+            <i class="fas fa-chart-line"></i> Sugar
+        </button>
+    </div>
+
+    <!-- Add New Medication -->
+    <div class="add-med-container">
+        <input type="text" id="new-med-input" placeholder="New medication" aria-label="New medication input field">
+        <button class="note-button" id="add-med-btn" aria-label="Add new medication">Add</button>
+    </div>
+
+    <!-- History Button -->
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button class="history-button" id="history-btn" aria-label="View history">
+            <i class="fas fa-history"></i> History
+        </button>
+    </div>
+
+    <!-- Custom Input for Tablet Count -->
+    <div id="tablet-count-input">
+        <label for="tablet-count-value">Enter Tablet Count:</label>
+        <input type="number" id="tablet-count-value" placeholder="Enter count">
+        <button id="save-tablet-count-btn">Save</button>
+    </div>
+
+    <!-- Blood Sugar Input Modal -->
+    <div id="blood-sugar-input">
+        <label for="blood-sugar-value">Enter Blood Sugar Level:</label>
+        <input type="number" id="blood-sugar-value" placeholder="e.g., 6.5" step="0.1">
+        <button id="save-blood-sugar-btn">Save</button>
+        <button id="cancel-blood-sugar-btn" class="cancel">Cancel</button>
+    </div>
+
+    <!-- Manual Entry Modal -->
+    <div id="manual-entry-input">
+        <label for="manual-entry-datetime">Select Date and Time:</label>
+        <input type="datetime-local" id="manual-entry-datetime">
+        <button id="save-manual-entry-btn">Save</button>
+        <button id="cancel-manual-entry-btn" class="cancel">Cancel</button>
+    </div>
+
+    <!-- Alert Message -->
+    <div id="alert-message"></div>
+
+    <!-- History Modal -->
+    <div id="modal-overlay"></div>
+    <div id="history-modal">
+        <div id="history-content"></div>
+        <button id="close-history-btn">Close</button>
+    </div>
+
+    <!-- Sugar Modal -->
+    <div id="sugar-modal">
+        <h2>Blood Sugar Readings</h2>
+        <!-- Date Range Dropdown -->
+        <div style="text-align: center; margin-bottom: 10px;">
+            <label for="date-range">Date Range:</label>
+            <select id="date-range">
+                <option value="3">Last 3 Days</option>
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="all">All Time</option>
+            </select>
+        </div>
+        <!-- Chart Container -->
+        <div id="sugar-chart-container">
+            <canvas id="sugar-chart"></canvas>
+        </div>
+        <button id="close-sugar-btn">Close</button>
+    </div>
+
+    <!-- Include your JavaScript code at the end of the body -->
+    <script>
+        // Register the Chart.js Annotation plugin
+        Chart.register(window['chartjs-plugin-annotation']);
+
+        let meds = [];
+        let tabletCountIndex = -1;
+        let manualEntryIndex = -1;
+        let openNoteIndex = null;
+        let noteTimeout;
+
+        // Variable to store history data
+        let medHistory = [];
+
+        // Variable to store blood sugar readings
+        let bloodSugarReadings = [];
+
+        // Variable to store the index of "Blood Sugar" medication
+        let bloodSugarMedIndex = -1;
+
+        // Variable to store the Chart.js chart instance
+        let sugarChart = null;
+
+        window.onload = () => {
+            loadMeds();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);  // Update time every second
+            setInterval(updateTimers, 1000);  // Update timers every second
+
+            document.getElementById('add-med-btn').addEventListener('click', () => {
+                playBeep();
+                addNewMed();
+            });
+            document.getElementById('save-tablet-count-btn').addEventListener('click', () => {
+                playBeep();
+                updateTabletCount();
+            });
+            document.getElementById('history-btn').addEventListener('click', () => {
+                playBeep();
+                openHistory();
+            });
+            document.getElementById('close-history-btn').addEventListener('click', () => {
+                playBeep();
+                closeHistory();
+            });
+            document.getElementById('modal-overlay').addEventListener('click', closeModals);
+
+            // Event listeners for the Sugar button
+            document.getElementById('sugar-btn').addEventListener('click', () => {
+                playBeep();
+                openSugarModal();
+            });
+            document.getElementById('close-sugar-btn').addEventListener('click', () => {
+                playBeep();
+                closeSugarModal();
+            });
+            document.getElementById('date-range').addEventListener('change', renderSugarChart);
+
+            // Event listeners for Blood Sugar Input Modal
+            document.getElementById('save-blood-sugar-btn').addEventListener('click', () => {
+                playBeep();
+                saveBloodSugarReading();
+            });
+            document.getElementById('cancel-blood-sugar-btn').addEventListener('click', () => {
+                playBeep();
+                cancelBloodSugarInput();
+            });
+
+            // Event listeners for Manual Entry Modal
+            document.getElementById('save-manual-entry-btn').addEventListener('click', () => {
+                playBeep();
+                saveManualEntry();
+            });
+            document.getElementById('cancel-manual-entry-btn').addEventListener('click', () => {
+                playBeep();
+                cancelManualEntry();
+            });
+
+            // **Added Event Listener to Prevent Click Propagation in Manual Entry Modal**
+            document.getElementById('manual-entry-input').addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+
+            // **Optional: Add Similar Event Listeners for Other Modals**
+            // For example, to prevent clicks inside the blood sugar input modal from closing it:
+            document.getElementById('blood-sugar-input').addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+            document.getElementById('tablet-count-input').addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+            document.getElementById('history-modal').addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+            document.getElementById('sugar-modal').addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+        };
+
+        function playBeep() {
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+
+            oscillator.frequency.value = 440; // Frequency in Hz (A note)
+            oscillator.type = 'square';
+
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+
+            oscillator.start();
+
+            // Stop the oscillator after 100 milliseconds
+            setTimeout(function() {
+                oscillator.stop();
+            }, 100);
+
+            // Disconnect after stopping
+            oscillator.onended = function() {
+                oscillator.disconnect();
+                gainNode.disconnect();
+            };
+        }
+
+        function addNewMed() {
+            const newMedName = document.getElementById('new-med-input').value.trim();
+            if (newMedName !== '') {
+                meds.push(createNewMedication(newMedName));
+                document.getElementById('new-med-input').value = '';  // Clear input field
+                saveMeds();
+                renderMeds();
+
+                // Automatically open tablet count input for the new medication, unless it's "Blood Sugar"
+                if (newMedName !== 'Blood Sugar') {
+                    tabletCountIndex = meds.length - 1;  // Index of the newly added medication
+                    document.getElementById('tablet-count-input').style.display = 'block';
+                    document.getElementById('modal-overlay').style.display = 'block';
+                }
+
+            } else {
+                alert('Please enter a valid medication name.');
+            }
+        }
+
+        function createNewMedication(name) {
+            return {
+                name: name,
+                lastTaken: null,
+                count: 0,
+                tabletCount: 0,
+                lastTakenDate: null,
+                notes: '',
+                showNotes: false,
+                history: []  // For storing taken times
+            };
+        }
+
+        function takeMedication(index) {
+            playBeep();
+            if (meds[index].name === 'Blood Sugar') {
+                openBloodSugarInput(index);
+                return;
+            }
+
+            const now = Date.now();
+
+            meds[index].history.push(now);
+            updateMedStats(index);
+
+            // Only decrement tablet count if it's not "Blood Sugar"
+            if (meds[index].name !== 'Blood Sugar') {
+                meds[index].tabletCount = Math.max(0, meds[index].tabletCount - 1);
+            }
+
+            // Add entry to medHistory with quantity 1 per click
+            addToHistory(meds[index].name, now, 1);
+
+            saveMeds();
+            renderMeds();
+        }
+
+        function openBloodSugarInput(index) {
+            bloodSugarMedIndex = index;
+            document.getElementById('blood-sugar-input').style.display = 'block';
+            document.getElementById('modal-overlay').style.display = 'block';
+            document.getElementById('blood-sugar-value').value = '';
+            document.getElementById('blood-sugar-value').focus();
+        }
+
+        function saveBloodSugarReading() {
+            const value = parseFloat(document.getElementById('blood-sugar-value').value);
+            if (!isNaN(value) && value >= 0) {
+                const now = Date.now();
+
+                // Generate a unique ID for this entry
+                const entryId = now;
+
+                // Save the reading with the unique ID
+                bloodSugarReadings.push({
+                    id: entryId,
+                    value: value,
+                    timestamp: now
+                });
+
+                // Update the medication data
+                meds[bloodSugarMedIndex].history.push(now);
+                updateMedStats(bloodSugarMedIndex);
+
+                // Add entry to medHistory with quantity 1 per click and the unique ID
+                addToHistory(meds[bloodSugarMedIndex].name, now, 1, entryId);
+
+                saveMeds();
+                closeBloodSugarInput();
+                renderMeds();
+
+            } else {
+                alert('Please enter a valid blood sugar level.');
+            }
+        }
+
+        function cancelBloodSugarInput() {
+            closeBloodSugarInput();
+        }
+
+        function closeBloodSugarInput() {
+            document.getElementById('blood-sugar-input').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+
+        function undoMedication(index) {
+            playBeep();
+            if (meds[index].history.length > 0) {
+                // Remove the last entry from medHistory for this medication
+                removeFromHistory(meds[index].name);
+
+                meds[index].history.pop();  // Remove the last taken time
+                updateMedStats(index);
+
+                // Only increment tablet count if it's not "Blood Sugar"
+                if (meds[index].name !== 'Blood Sugar') {
+                    meds[index].tabletCount += 1;
+                } else {
+                    // Also remove the last blood sugar reading
+                    if (bloodSugarReadings.length > 0) {
+                        bloodSugarReadings.pop();
+                    }
+                }
+
+                saveMeds();
+                renderMeds();
+            }
+        }
+
+        function removeMedication(index) {
+            playBeep();
+            // If removing "Blood Sugar", clear the readings
+            if (meds[index].name === 'Blood Sugar') {
+                bloodSugarReadings = [];
+            }
+            meds.splice(index, 1);
+            saveMeds();
+            renderMeds();
+        }
+
+        function openTabletCount(index) {
+            playBeep();
+            tabletCountIndex = index;
+            document.getElementById('tablet-count-input').style.display = 'block';
+            document.getElementById('modal-overlay').style.display = 'block';
+        }
+
+        function updateTabletCount() {
+            playBeep();
+            const count = parseInt(document.getElementById('tablet-count-value').value);
+            if (!isNaN(count) && count >= 0 && tabletCountIndex !== -1) {
+                meds[tabletCountIndex].tabletCount = count;
+                document.getElementById('tablet-count-value').value = '';
+                tabletCountIndex = -1;
+                closeModals();
+                saveMeds();
+                renderMeds();
+            } else {
+                alert('Please enter a valid tablet count.');
+            }
+        }
+
+        function toggleNotes(index) {
+            playBeep();
+            const notesTextArea = document.getElementById(`med-notes-${index}`);
+            if (notesTextArea.style.display === 'block') {
+                notesTextArea.style.display = 'none';
+                openNoteIndex = null;
+            } else {
+                notesTextArea.style.display = 'block';
+                notesTextArea.focus();
+
+                // Scroll to bottom when notes are opened
+                setTimeout(() => {
+                    notesTextArea.scrollTop = notesTextArea.scrollHeight;
+                }, 0);
+
+                openNoteIndex = index;
+            }
+        }
+
+        function saveNotes(index) {
+            clearTimeout(noteTimeout);
+            noteTimeout = setTimeout(() => {
+                const notes = document.getElementById(`med-notes-${index}`).value;
+                meds[index].notes = notes;
+                saveMeds();
+            }, 300);
+        }
+
+        function calculateTimeSinceLastTaken(lastTaken) {
+            if (!lastTaken) {
+                return 'None taken today.';
+            }
+            const now = Date.now();
+            const timeDiff = now - lastTaken;
+            const hours = Math.floor(timeDiff / 3600000);
+            const mins = Math.floor((timeDiff % 3600000) / 60000);
+            const secs = Math.floor((timeDiff % 60000) / 1000);
+            return `${hours} Hours ${mins} Mins ${secs} Secs`;
+        }
+
+        function renderMeds() {
+            const medList = document.getElementById('med-list');
+            medList.innerHTML = '';
+            meds.forEach((med, index) => {
+                const medItem = document.createElement('div');
+                medItem.className = 'med-item';
+
+                const timeSinceLastTaken = calculateTimeSinceLastTaken(med.lastTaken);
+                const formattedLastTaken = med.lastTaken ? formatDateTime(new Date(med.lastTaken)) : 'None taken today.';
+
+                const takenCountDisplay = med.count > 0
+                    ? `Taken ${med.count} times today`
+                    : 'None taken today.';
+
+                const isOpen = openNoteIndex === index;
+
+                medItem.innerHTML = `
+                    <button class="take-button" onclick="takeMedication(${index})"><i class="fas fa-check-circle"></i> ${med.name}</button>
+                    <button class="delete-button" onclick="undoMedication(${index})"><i class="fas fa-undo-alt"></i> Undo</button>
+                    <button class="remove-med-button" onclick="removeMedication(${index})"><i class="fas fa-trash-alt"></i> Remove</button>
+                    ${med.name !== 'Blood Sugar' ? `
+                    <button class="tablet-count-button" onclick="openTabletCount(${index})"><i class="fas fa-pills"></i> ${med.tabletCount}</button>
+                    ` : ''}
+                    <button class="note-button" onclick="toggleNotes(${index})"><i class="fas fa-sticky-note"></i> Notes</button>
+                    <button class="manual-entry-button" onclick="openManualEntry(${index})"><i class="fas fa-clock"></i> Add Past Dose</button>
+                    <textarea id="med-notes-${index}" class="med-notes" rows="12" style="display: ${isOpen ? 'block' : 'none'};"
+                        oninput="saveNotes(${index})">${med.notes}</textarea>
+                    <div id="med-timer-${index}">Last taken: ${formattedLastTaken} (${timeSinceLastTaken})</div>
+                    <div>${takenCountDisplay}</div>
+                `;
+                medList.appendChild(medItem);
+            });
+
+            // Check if "Blood Sugar" is in the meds list to display the Sugar button
+            const sugarButtonContainer = document.getElementById('sugar-button-container');
+            if (meds.some(med => med.name === 'Blood Sugar')) {
+                sugarButtonContainer.style.display = 'block';
+            } else {
+                sugarButtonContainer.style.display = 'none';
+            }
+        }
+
+        function updateTimers() {
+            meds.forEach((med, index) => {
+                const timeSinceLastTaken = calculateTimeSinceLastTaken(med.lastTaken);
+                const formattedLastTaken = med.lastTaken ? formatDateTime(new Date(med.lastTaken)) : 'None taken today.';
+                const timerElement = document.getElementById(`med-timer-${index}`);
+                if (timerElement) {
+                    timerElement.innerHTML = `Last taken: ${formattedLastTaken} (${timeSinceLastTaken})`;
+                }
+            });
+        }
+
+        function formatDateTime(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2); // Last two digits
+            const hours = String(date.getHours()).padStart(2, '0');
+            const mins = String(date.getMinutes()).padStart(2, '0');
+            return `${day}/${month}/${year}, ${hours}:${mins}`;
+        }
+
+        function formatTime(date) {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const mins = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${mins}`;
+        }
+
+        function saveMeds() {
+            try {
+                // Convert Date objects to timestamps before saving
+                const medsToSave = meds.map(med => ({
+                    ...med,
+                    lastTaken: med.lastTaken ? med.lastTaken : null,
+                    history: med.history
+                }));
+                const medHistoryToSave = medHistory.map(entry => ({
+                    ...entry,
+                    timestamp: entry.timestamp
+                }));
+                const bloodSugarReadingsToSave = bloodSugarReadings.map(reading => ({
+                    ...reading,
+                    timestamp: reading.timestamp
+                }));
+
+                localStorage.setItem('meds', JSON.stringify(medsToSave));
+                localStorage.setItem('medHistory', JSON.stringify(medHistoryToSave));
+                localStorage.setItem('bloodSugarReadings', JSON.stringify(bloodSugarReadingsToSave));
+            } catch (e) {
+                alert('Unable to save medications. Local storage limit reached.');
+            }
+        }
+
+        function loadMeds() {
+            const savedMeds = localStorage.getItem('meds');
+            meds = savedMeds ? JSON.parse(savedMeds) : [];
+
+            const savedHistory = localStorage.getItem('medHistory');
+            medHistory = savedHistory ? JSON.parse(savedHistory) : [];
+
+            const savedBloodSugarReadings = localStorage.getItem('bloodSugarReadings');
+            bloodSugarReadings = savedBloodSugarReadings ? JSON.parse(savedBloodSugarReadings) : [];
+
+            // Ensure med.history arrays are initialized
+            meds.forEach((med, index) => {
+                med.lastTaken = med.lastTaken ? med.lastTaken : null;
+                med.history = med.history || [];
+                updateMedStats(index);
+            });
+
+            renderMeds();
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const dayOfWeek = now.toLocaleString('en-US', { weekday: 'long' });
+            const formattedDate = formatDateTime(now);
+            document.getElementById('current-day').innerText = dayOfWeek;
+            document.getElementById('current-date-time').innerText = formattedDate;
+        }
+
+        // Functions for managing history with aggregation
+        function addToHistory(medName, timestamp, quantity, entryId = null) {
+            const tenMinutesInMs = 10 * 60 * 1000;
+            let lastEntryIndex = -1;
+
+            // Find the last entry for this medication
+            for (let i = medHistory.length - 1; i >= 0; i--) {
+                if (medHistory[i].medName === medName) {
+                    lastEntryIndex = i;
+                    break;
+                }
+            }
+
+            if (lastEntryIndex !== -1) {
+                const lastEntry = medHistory[lastEntryIndex];
+                const lastTimestamp = lastEntry.timestamp;
+                const timeDifference = timestamp - lastTimestamp;
+
+                if (timeDifference >= 0 && timeDifference <= tenMinutesInMs && medName !== 'Blood Sugar') {
+                    // Within 10 minutes after the last entry, increment quantity
+                    lastEntry.quantity += quantity;
+                    // Keep the timestamp as the first one in the window
+                } else {
+                    // Create new entry
+                    medHistory.push({
+                        medName: medName,
+                        timestamp: timestamp,
+                        quantity: quantity,
+                        id: entryId  // Add ID for Blood Sugar entries
+                    });
+                }
+            } else {
+                // No previous entry, create new one
+                medHistory.push({
+                    medName: medName,
+                    timestamp: timestamp,
+                    quantity: quantity,
+                    id: entryId  // Add ID for Blood Sugar entries
+                });
+            }
+            saveMeds();
+        }
+
+        function removeFromHistory(medName) {
+            // Remove or decrement the last entry with the given medName
+            for (let i = medHistory.length - 1; i >= 0; i--) {
+                if (medHistory[i].medName === medName) {
+                    if (medHistory[i].quantity > 1 && medName !== 'Blood Sugar') {
+                        medHistory[i].quantity -= 1;
+                    } else {
+                        medHistory.splice(i, 1);
+                    }
+                    break;
+                }
+            }
+            saveMeds();
+        }
+
+        function openHistory() {
+            const historyModal = document.getElementById('history-modal');
+            const historyContent = document.getElementById('history-content');
+            const modalOverlay = document.getElementById('modal-overlay');
+
+            // Generate history content
+            const historyHTML = generateHistoryContent();
+            historyContent.innerHTML = historyHTML;
+
+            historyModal.style.display = 'block';
+            modalOverlay.style.display = 'block';
+
+            // Scroll to the bottom to show the most recent date
+            setTimeout(() => {
+                historyContent.scrollTop = historyContent.scrollHeight;
+            }, 0);
+        }
+
+        function closeHistory() {
+            const historyModal = document.getElementById('history-modal');
+            const modalOverlay = document.getElementById('modal-overlay');
+
+            historyModal.style.display = 'none';
+            modalOverlay.style.display = 'none';
+        }
+
+        function closeModals() {
+            // Close all modals and overlays
+            document.getElementById('tablet-count-input').style.display = 'none';
+            document.getElementById('history-modal').style.display = 'none';
+            document.getElementById('sugar-modal').style.display = 'none';
+            document.getElementById('blood-sugar-input').style.display = 'none';
+            document.getElementById('manual-entry-input').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'none';
+
+            // Reset manualEntryIndex
+            manualEntryIndex = -1;
+
+            // Destroy the chart instance to free up memory
+            if (sugarChart) {
+                sugarChart.destroy();
+                sugarChart = null;
+            }
+        }
+
+        function generateHistoryContent() {
+            // Organize history by date
+            const historyByDate = {};
+
+            medHistory.forEach(entry => {
+                const date = new Date(entry.timestamp);
+                const dateKey = date.toISOString().split('T')[0];  // YYYY-MM-DD
+
+                if (!historyByDate[dateKey]) {
+                    historyByDate[dateKey] = [];
+                }
+
+                let displayName = entry.medName;
+                let displayQuantity = `x${entry.quantity}`;
+                let displayValue = '';
+
+                // For Blood Sugar, display the value instead of quantity
+                if (entry.medName === 'Blood Sugar') {
+                    // Find the corresponding blood sugar reading by matching the ID
+                    const reading = bloodSugarReadings.find(r => r.id === entry.id);
+                    if (reading) {
+                        displayValue = `(${reading.value})`;
+                    }
+                    displayQuantity = ''; // Remove quantity for blood sugar readings
+                }
+
+                historyByDate[dateKey].push({
+                    medName: displayName,
+                    time: formatTime(new Date(entry.timestamp)),
+                    quantity: displayQuantity,
+                    value: displayValue,
+                    timestamp: entry.timestamp  // Include timestamp for sorting
+                });
+            });
+
+            // Sort dates in ascending order (chronological)
+            const sortedDates = Object.keys(historyByDate).sort((a, b) => new Date(a) - new Date(b));
+
+            // Build history HTML
+            let historyHTML = '';
+            sortedDates.forEach(dateKey => {
+                const date = new Date(dateKey);
+                const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getFullYear()).slice(-2)}`;
+
+                historyHTML += `<div class="history-date">${formattedDate}</div>`;
+                // Sort entries within the date by time
+                historyByDate[dateKey].sort((a, b) => a.timestamp - b.timestamp);
+                historyByDate[dateKey].forEach(entry => {
+                    historyHTML += `<div>${entry.medName} ${entry.time} ${entry.quantity} ${entry.value}</div>`;
+                });
+                historyHTML += '<br>';  // Extra space between dates
+            });
+
+            return historyHTML.trim();  // Remove trailing whitespace
+        }
+
+        function openSugarModal() {
+            const sugarModal = document.getElementById('sugar-modal');
+            const modalOverlay = document.getElementById('modal-overlay');
+
+            // Generate the chart
+            renderSugarChart();
+
+            sugarModal.style.display = 'block';
+            modalOverlay.style.display = 'block';
+        }
+
+        function closeSugarModal() {
+            const sugarModal = document.getElementById('sugar-modal');
+            const modalOverlay = document.getElementById('modal-overlay');
+
+            sugarModal.style.display = 'none';
+            modalOverlay.style.display = 'none';
+
+            // Destroy the chart instance to free up memory
+            if (sugarChart) {
+                sugarChart.destroy();
+                sugarChart = null;
+            }
+        }
+
+        function renderSugarChart() {
+            const ctx = document.getElementById('sugar-chart').getContext('2d');
+
+            // Prepare data for the chart
+            const sortedReadings = [...bloodSugarReadings].sort((a, b) => a.timestamp - b.timestamp);
+
+            const selectedRange = document.getElementById('date-range').value;
+            const filteredReadings = filterReadingsByDateRange(sortedReadings, selectedRange);
+
+            const labels = filteredReadings.map(reading => {
+                return formatDateTime(new Date(reading.timestamp));
+            });
+
+            const dataValues = filteredReadings.map(reading => reading.value);
+
+            // Create or update the chart
+            if (sugarChart) {
+                // Update existing chart
+                sugarChart.data.labels = labels;
+                sugarChart.data.datasets[0].data = dataValues;
+                sugarChart.options.plugins.annotation.annotations = generateDaySeparators(filteredReadings);
+                sugarChart.update();
+            } else {
+                // Create a new chart
+                sugarChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Blood Sugar Level',
+                            data: dataValues,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 4, // Visible dots at data points
+                            pointBackgroundColor: dataValues.map(value => value >= 6.5 ? 'green' : 'red'),
+                            // Customize line colors based on data values
+                            segment: {
+                                borderColor: ctx => ctx.p0.parsed.y >= 6.5 ? 'green' : 'red',
+                            }
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                type: 'category',
+                                title: {
+                                    display: true,
+                                    text: 'Date & Time'
+                                },
+                                ticks: {
+                                    autoSkip: true,
+                                    maxTicksLimit: 10
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Blood Sugar Level'
+                                },
+                                beginAtZero: true
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` ${context.parsed.y}`;
+                                    }
+                                }
+                            },
+                            annotation: {
+                                annotations: generateDaySeparators(filteredReadings)
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function filterReadingsByDateRange(readings, range) {
+            const now = Date.now();
+            let startDate;
+
+            if (range === '3') {
+                startDate = now - 3 * 24 * 60 * 60 * 1000;
+            } else if (range === '7') {
+                startDate = now - 7 * 24 * 60 * 60 * 1000;
+            } else if (range === '30') {
+                startDate = now - 30 * 24 * 60 * 60 * 1000;
+            } else {
+                return readings;
+            }
+
+            return readings.filter(reading => reading.timestamp >= startDate);
+        }
+
+        function generateDaySeparators(readings) {
+            const separators = {};
+            let lastDate = '';
+
+            readings.forEach((reading, index) => {
+                const currentDate = new Date(reading.timestamp).toISOString().split('T')[0];
+
+                if (currentDate !== lastDate) {
+                    separators[`line${index}`] = {
+                        type: 'line',
+                        xMin: index,
+                        xMax: index,
+                        borderColor: 'rgba(0, 0, 0, 0.5)',
+                        borderWidth: 1,
+                        borderDash: [4, 4],
+                        label: {
+                            enabled: false,
+                        }
+                    };
+                    lastDate = currentDate;
+                }
+            });
+
+            return separators;
+        }
+
+        function openManualEntry(index) {
+            playBeep();
+            manualEntryIndex = index;
+            document.getElementById('manual-entry-input').style.display = 'block';
+            document.getElementById('modal-overlay').style.display = 'block';
+            document.getElementById('manual-entry-datetime').value = '';
+            document.getElementById('manual-entry-datetime').focus();
+        }
+
+        function saveManualEntry() {
+            const datetimeValue = document.getElementById('manual-entry-datetime').value;
+            if (datetimeValue && manualEntryIndex !== -1) {
+                const selectedDate = new Date(datetimeValue);
+                if (isNaN(selectedDate.getTime())) {
+                    alert('Please enter a valid date and time.');
+                    return;
+                }
+
+                const timestamp = selectedDate.getTime();
+                const med = meds[manualEntryIndex];
+
+                med.history.push(timestamp);
+                updateMedStats(manualEntryIndex);
+
+                // Only decrement tablet count if it's not "Blood Sugar"
+                if (med.name !== 'Blood Sugar') {
+                    med.tabletCount = Math.max(0, med.tabletCount - 1);
+                }
+
+                // Add entry to medHistory with quantity 1
+                addToHistory(med.name, timestamp, 1);
+
+                saveMeds();
+                closeManualEntry();
+                renderMeds();
+            } else {
+                alert('Please enter a valid date and time.');
+            }
+        }
+
+        function cancelManualEntry() {
+            closeManualEntry();
+        }
+
+        function closeManualEntry() {
+            document.getElementById('manual-entry-input').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'none';
+            manualEntryIndex = -1;
+        }
+
+        function updateMedStats(index) {
+            const med = meds[index];
+            if (med.history.length === 0) {
+                med.lastTaken = null;
+                med.lastTakenDate = null;
+                med.count = 0;
+                return;
+            }
+            // Sort med.history
+            med.history.sort((a, b) => a - b);
+            // Get the latest taken time
+            med.lastTaken = med.history[med.history.length - 1];
+            med.lastTakenDate = new Date(med.lastTaken).toISOString().split('T')[0];
+            // Count the number of times taken today
+            const today = new Date().toISOString().split('T')[0];
+            med.count = med.history.filter(ts => new Date(ts).toISOString().startsWith(today)).length;
+        }
+    </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(console.error);
+      });
+    }
+  </script>
+
+</body>
+</html>
